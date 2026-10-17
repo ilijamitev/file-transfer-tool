@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
-using FileTransferTool.Core.Models;
+﻿using FileTransferTool.Core.Models;
 using FileTransferTool.Core.Storage;
+using System.Diagnostics;
 
 namespace FileTransferTool.Core.Transfer;
 

@@ -1,4 +1,5 @@
-﻿using FileTransferTool.Core.Models;
+﻿using FileTransferTool.Core.Exceptions;
+using FileTransferTool.Core.Models;
 
 namespace FileTransferTool.Output;
 
@@ -27,6 +28,13 @@ internal static class ConsoleOutput
         Console.ResetColor();
     }
 
+    public static void WriteError(Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine(FormatErrorMessage(ex));
+        Console.ResetColor();
+    }
+
     public static void WritePlan(TransferPlan plan)
     {
         Console.WriteLine();
@@ -35,4 +43,22 @@ internal static class ConsoleOutput
         Console.WriteLine($"Plan:        {plan.ChunkCount:N0} chunks of {ByteFormatter.Format(plan.ChunkSizeBytes)}, {plan.MaxDegreeOfParallelism} in parallel, up to {plan.MaxAttemptsPerChunk} attempts each");
     }
 
+    private static string FormatErrorMessage(Exception ex) => ex switch
+    {
+        TransferSetupException =>
+            $"The transfer did not start. {ex.Message}",
+
+        TransferVerificationException =>
+            $"Verification failed: {ex.Message} " +
+            "The copy was stopped and its temp file deleted; the destination file was not touched.",
+
+        TransferCommitException =>
+            $"The copy is complete and verified, but it could not be given its final name. {ex.Message}",
+
+        IOException or UnauthorizedAccessException =>
+            $"File system or permission error: {ex.Message} " +
+            "The copy was stopped and its temp file deleted; the destination file was not touched.",
+
+        _ => $"An unexpected error occurred ({ex.GetType().Name}): {ex.Message}",
+    };
 }
