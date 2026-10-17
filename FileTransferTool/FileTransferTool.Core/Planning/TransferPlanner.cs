@@ -7,7 +7,6 @@ public static class TransferPlanner
 {
     public static TransferPlan Plan(TransferRequest request, TransferOptions options)
     {
-        // 1) Validate source and destination
         string sourcePath = ResolveFullPath(request.SourcePath, "source");
         string destinationFolder = ResolveFullPath(request.DestinationFolder, "destination");
 
@@ -41,7 +40,6 @@ public static class TransferPlanner
         return new TransferPlan
         {
             SourcePath = sourcePath,
-            DestinationFolder = destinationFolder,
             DestinationPath = destinationPath,
             SourceLength = sourceFileInfo.Length,
             ChunkSizeBytes = options.ChunkSizeBytes,
@@ -64,9 +62,8 @@ public static class TransferPlanner
         }
         catch (Exception ex) when (ex is ArgumentException or IOException)
         {
-            // GetFullPath doesn't read or write files, so an IOException here (PathTooLongException)
-            // means a bad path, not a failed copy.
             throw new TransferSetupException($"\"{path}\" is not a valid {role} path.", ex);
         }
     }
+
 }

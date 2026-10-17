@@ -1,6 +1,7 @@
 ﻿using FileTransferTool.Core.Exceptions;
 using FileTransferTool.Core.Models;
 using FileTransferTool.Core.Planning;
+using FileTransferTool.Core.Transfer;
 using FileTransferTool.Input;
 using FileTransferTool.Output;
 
@@ -34,10 +35,10 @@ internal static class TransferWorkflow
 
         ConsoleOutput.WritePlan(plan);
 
-
         // 3) Run the transfer
-
+        TransferResult result = await FileTransfer.CopyAsync(plan);
 
         // 4) Report the result
+        ConsoleOutput.WriteSuccess($"Copied and verified in {result.Elapsed.TotalSeconds:0.00} s");
     }
 }
