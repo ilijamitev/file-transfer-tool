@@ -12,7 +12,11 @@ internal sealed class ChunkTransfer
     private readonly byte[][] _chunkHashes;
     private readonly int _maxAttempts;
 
-    public ChunkTransfer(SourceFile source, DestinationPartialFile destination, byte[][] chunkHashes, int maxAttempts)
+    public ChunkTransfer(
+        SourceFile source, 
+        DestinationPartialFile destination, 
+        byte[][] chunkHashes, 
+        int maxAttempts)
     {
         _source = source;
         _destination = destination;
@@ -22,20 +26,19 @@ internal sealed class ChunkTransfer
 
     public async ValueTask CopyAsync(Chunk chunk)
     {
-        byte[] sendArray = ArrayPool<byte>.Shared.Rent(chunk.Length);
-        byte[] receiveArray = ArrayPool<byte>.Shared.Rent(chunk.Length);
+        byte[] sourceArray = ArrayPool<byte>.Shared.Rent(chunk.Length);
+        byte[] readBackArray = ArrayPool<byte>.Shared.Rent(chunk.Length);
         try
         {
-            Memory<byte> sendBuffer = sendArray.AsMemory(0, chunk.Length);
-            Memory<byte> receiveBuffer = receiveArray.AsMemory(0, chunk.Length);
+            Memory<byte> sourceBuffer = sourceArray.AsMemory(0, chunk.Length);
+            Memory<byte> readBackBuffer = readBackArray.AsMemory(0, chunk.Length);
 
-            byte[] sourceHash = await _source.ReadAsync(chunk, sendBuffer);
+            byte[] sourceHash = await _source.ReadAsync(chunk, sourceBuffer);
             _chunkHashes[chunk.Index] = sourceHash;
 
             for (int attempt = 1; attempt <= _maxAttempts; attempt++)
             {
-                sendBuffer.Span.CopyTo(receiveBuffer.Span);
-                if (await _destination.TryReceiveAsync(chunk, receiveBuffer, sourceHash))
+                if (await _destination.WriteAndVerifyAsync(chunk, sourceBuffer, readBackBuffer, sourceHash))
                 {
                     return;
                 }
@@ -46,8 +49,8 @@ internal sealed class ChunkTransfer
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(sendArray);
-            ArrayPool<byte>.Shared.Return(receiveArray);
+            ArrayPool<byte>.Shared.Return(sourceArray);
+            ArrayPool<byte>.Shared.Return(readBackArray);
         }
     }
 }

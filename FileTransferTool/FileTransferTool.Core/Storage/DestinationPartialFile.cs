@@ -36,15 +36,27 @@ internal sealed class DestinationPartialFile : IDisposable
         }
     }
 
-    public async ValueTask<bool> TryReceiveAsync(Chunk chunk, ReadOnlyMemory<byte> received, ReadOnlyMemory<byte> expectedHash)
+    public async ValueTask<bool> WriteAndVerifyAsync(
+        Chunk chunk, 
+        ReadOnlyMemory<byte> data, 
+        Memory<byte> readBackBuffer, 
+        ReadOnlyMemory<byte> expectedHash)
     {
-        if (!ChunkHasher.Matches(received.Span, expectedHash.Span))
+        await RandomAccess.WriteAsync(Handle, data, chunk.Offset);
+
+        int total = 0;
+        while (total < chunk.Length)
         {
-            return false;
+            int read = await RandomAccess.ReadAsync(Handle, readBackBuffer.Slice(total), chunk.Offset + total);
+            if (read == 0)
+            {
+                throw new IOException($"The temp file ended at byte {chunk.Offset + total}, inside the chunk at {chunk.Offset} that was just written to it.");
+            }
+
+            total += read;
         }
 
-        await RandomAccess.WriteAsync(Handle, received, chunk.Offset);
-        return true;
+        return ChunkHasher.Matches(readBackBuffer.Span, expectedHash.Span);
     }
 
     public void Flush() => RandomAccess.FlushToDisk(Handle);
