@@ -11,17 +11,20 @@ internal sealed class ChunkTransfer
     private readonly DestinationPartialFile _destination;
     private readonly byte[][] _chunkHashes;
     private readonly int _maxAttempts;
+    private readonly TransferProgress _progress;
 
     public ChunkTransfer(
-        SourceFile source, 
-        DestinationPartialFile destination, 
-        byte[][] chunkHashes, 
-        int maxAttempts)
+        SourceFile source,
+        DestinationPartialFile destination,
+        byte[][] chunkHashes,
+        int maxAttempts,
+        TransferProgress progress)
     {
         _source = source;
         _destination = destination;
         _chunkHashes = chunkHashes;
         _maxAttempts = maxAttempts;
+        _progress = progress;
     }
 
     public async ValueTask CopyAsync(Chunk chunk)
@@ -40,6 +43,7 @@ internal sealed class ChunkTransfer
             {
                 if (await _destination.WriteAndVerifyAsync(chunk, sourceBuffer, readBackBuffer, sourceHash))
                 {
+                    _progress.AddBytesCopied(chunk.Length);
                     return;
                 }
             }

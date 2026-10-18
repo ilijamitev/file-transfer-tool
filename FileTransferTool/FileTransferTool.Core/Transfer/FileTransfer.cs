@@ -8,7 +8,7 @@ namespace FileTransferTool.Core.Transfer;
 
 public static class FileTransfer
 {
-    public static async Task<TransferResult> CopyAsync(TransferPlan plan)
+    public static async Task<TransferResult> CopyAsync(TransferPlan plan, TransferProgress progress)
     {
         long startTimestamp = Stopwatch.GetTimestamp();
 
@@ -25,7 +25,7 @@ public static class FileTransfer
 
         // 2) Copy the chunks in parallel
         byte[][] chunkHashes = new byte[plan.ChunkCount][];
-        var chunkTransfer = new ChunkTransfer(source, destination, chunkHashes, plan.MaxAttemptsPerChunk);
+        var chunkTransfer = new ChunkTransfer(source, destination, chunkHashes, plan.MaxAttemptsPerChunk, progress);
 
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = plan.MaxDegreeOfParallelism };
         await Parallel.ForAsync(0, plan.ChunkCount, parallelOptions, (index, _) => chunkTransfer.CopyAsync(plan.ChunkAt(index)));

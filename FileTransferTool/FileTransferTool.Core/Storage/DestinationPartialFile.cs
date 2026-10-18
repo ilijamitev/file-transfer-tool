@@ -37,9 +37,9 @@ internal sealed class DestinationPartialFile : IDisposable
     }
 
     public async ValueTask<bool> WriteAndVerifyAsync(
-        Chunk chunk, 
-        ReadOnlyMemory<byte> data, 
-        Memory<byte> readBackBuffer, 
+        Chunk chunk,
+        ReadOnlyMemory<byte> data,
+        Memory<byte> readBackBuffer,
         ReadOnlyMemory<byte> expectedHash)
     {
         await RandomAccess.WriteAsync(Handle, data, chunk.Offset);

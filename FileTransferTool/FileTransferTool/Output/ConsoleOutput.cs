@@ -1,5 +1,6 @@
 ﻿using FileTransferTool.Core.Exceptions;
 using FileTransferTool.Core.Models;
+using System.Diagnostics;
 
 namespace FileTransferTool.Output;
 
@@ -43,6 +44,30 @@ internal static class ConsoleOutput
         Console.WriteLine($"Plan:        {plan.ChunkCount:N0} chunks of {ByteFormatter.Format(plan.ChunkSizeBytes)}, {plan.MaxDegreeOfParallelism} in parallel, up to {plan.MaxAttemptsPerChunk} attempts each");
     }
 
+    public static async Task WriteProgressAsync(Task copyTask, TransferProgress progress, long sourceLength)
+    {
+        if (Console.IsErrorRedirected || copyTask.IsCompleted)
+        {
+            return;
+        }
+
+        long startTimestamp = Stopwatch.GetTimestamp();
+        int previousLineLength = 0;
+        bool isCopyCompleted = false;
+        while (!isCopyCompleted)
+        {
+            await Task.WhenAny(copyTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
+
+            isCopyCompleted = copyTask.IsCompleted;
+            string line = FormatProgress(copyTask, progress.BytesCopied, sourceLength, Stopwatch.GetElapsedTime(startTimestamp));
+
+            await Console.Error.WriteAsync("\r" + line.PadRight(previousLineLength));
+            previousLineLength = line.Length;
+        }
+
+        await Console.Error.WriteLineAsync();
+    }
+
     public static void WriteReport(TransferPlan plan, TransferResult result)
     {
         Console.WriteLine();
@@ -79,11 +104,24 @@ internal static class ConsoleOutput
         }
     }
 
+    private static string FormatProgress(Task copyTask, long bytesCopied, long sourceLength, TimeSpan elapsed)
+    {
+        int percent = sourceLength == 0 ? 100 : (int)(bytesCopied * 100 / sourceLength);
+        string bar = new string('#', percent / 5).PadRight(20, '-');
+        long bytesPerSecond = (long)(bytesCopied / Math.Max(elapsed.TotalSeconds, 0.001));
+        string status = copyTask.IsCompletedSuccessfully ? "done"
+            : copyTask.IsFaulted ? "failed"
+            : bytesCopied < sourceLength ? "copying"
+            : "verifying";
+
+        return $"[{bar}] {percent,3}%  {ByteFormatter.Format(bytesCopied)} / {ByteFormatter.Format(sourceLength)}  {ByteFormatter.Format(bytesPerSecond)}/s  {status}";
+    }
+
     private static string FormatSummary(TransferPlan plan, TransferResult result)
     {
         double seconds = Math.Max(result.Elapsed.TotalSeconds, 0.001);
-        string rate = ByteFormatter.Format((long)(plan.SourceLength / seconds));
-        return $"Copied and verified {ByteFormatter.Format(plan.SourceLength)} in {result.Elapsed.TotalSeconds:0.00} s ({rate}/s): {plan.ChunkCount:N0} chunks.";
+        long bytesPerSecond = (long)(plan.SourceLength / seconds);
+        return $"Copied and verified {ByteFormatter.Format(plan.SourceLength)} in {result.Elapsed.TotalSeconds:0.00} s ({ByteFormatter.Format(bytesPerSecond)}/s): {plan.ChunkCount:N0} chunks.";
     }
 
     private static string FormatErrorMessage(Exception ex) => ex switch

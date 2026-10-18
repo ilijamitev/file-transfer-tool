@@ -35,9 +35,12 @@ internal static class TransferWorkflow
         ConsoleOutput.WritePlan(plan);
 
         // 3) Run the transfer
-        TransferResult result = await FileTransfer.CopyAsync(plan);
+        var progress = new TransferProgress();
+        Task<TransferResult> copyTask = FileTransfer.CopyAsync(plan, progress);
+        await ConsoleOutput.WriteProgressAsync(copyTask, progress, plan.SourceLength);
+        TransferResult result = await copyTask;
 
-        // 4) Report the result
+        // 4) Report the result 
         ConsoleOutput.WriteReport(plan, result);
     }
 }
