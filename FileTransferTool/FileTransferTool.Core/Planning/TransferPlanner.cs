@@ -5,25 +5,25 @@ namespace FileTransferTool.Core.Planning;
 
 public static class TransferPlanner
 {
-    public static TransferPlan Plan(TransferRequest request, TransferOptions options)
+    public static TransferPlan Plan(string sourcePath, string destinationFolder, TransferOptions options)
     {
-        string sourcePath = ResolveFullPath(request.SourcePath, "source");
-        string destinationFolder = ResolveFullPath(request.DestinationFolder, "destination");
+        string fullSourcePath = ResolveFullPath(sourcePath, "source");
+        string fullDestinationFolder = ResolveFullPath(destinationFolder, "destination");
 
-        if (Directory.Exists(sourcePath))
+        if (Directory.Exists(fullSourcePath))
         {
             throw new TransferSetupException("Source is a folder; enter a file path.");
         }
 
-        if (File.Exists(destinationFolder))
+        if (File.Exists(fullDestinationFolder))
         {
             throw new TransferSetupException("Destination is a file; enter a folder.");
         }
 
-        var sourceFileInfo = new FileInfo(sourcePath);
+        var sourceFileInfo = new FileInfo(fullSourcePath);
         if (!sourceFileInfo.Exists)
         {
-            throw new TransferSetupException($"Source file not found: {sourcePath}");
+            throw new TransferSetupException($"Source file not found: {fullSourcePath}");
         }
 
         if (sourceFileInfo.LinkTarget is not null)
@@ -31,15 +31,15 @@ public static class TransferPlanner
             throw new TransferSetupException($"Source is a link to {sourceFileInfo.LinkTarget}; enter the path of that file instead.");
         }
 
-        string destinationPath = Path.Combine(destinationFolder, sourceFileInfo.Name);
-        if (string.Equals(sourcePath, destinationPath, StringComparison.OrdinalIgnoreCase))
+        string destinationPath = Path.Combine(fullDestinationFolder, sourceFileInfo.Name);
+        if (string.Equals(fullSourcePath, destinationPath, StringComparison.OrdinalIgnoreCase))
         {
             throw new TransferSetupException("Source and destination are the same file.");
         }
 
         return new TransferPlan
         {
-            SourcePath = sourcePath,
+            SourcePath = fullSourcePath,
             DestinationPath = destinationPath,
             SourceLength = sourceFileInfo.Length,
             ChunkSizeBytes = options.ChunkSizeBytes,

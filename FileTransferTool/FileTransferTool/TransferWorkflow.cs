@@ -18,10 +18,9 @@ internal static class TransferWorkflow
         string destinationFolder = ConsoleInput.ReadDestinationFolder();
 
         // 2) Prepare the Transfer
-        var request = new TransferRequest(sourcePath, destinationFolder);
         var options = new TransferOptions();
 
-        TransferPlan plan = TransferPlanner.Plan(request, options);
+        TransferPlan plan = TransferPlanner.Plan(sourcePath, destinationFolder, options);
 
         if (plan.DestinationExists)
         {
