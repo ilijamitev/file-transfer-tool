@@ -38,6 +38,6 @@ internal static class TransferWorkflow
         TransferResult result = await FileTransfer.CopyAsync(plan);
 
         // 4) Report the result
-        ConsoleOutput.WriteSuccess($"Copied and verified in {result.Elapsed.TotalSeconds:0.00} s");
+        ConsoleOutput.WriteReport(plan, result);
     }
 }

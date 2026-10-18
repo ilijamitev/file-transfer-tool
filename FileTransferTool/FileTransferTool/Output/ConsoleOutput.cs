@@ -43,6 +43,49 @@ internal static class ConsoleOutput
         Console.WriteLine($"Plan:        {plan.ChunkCount:N0} chunks of {ByteFormatter.Format(plan.ChunkSizeBytes)}, {plan.MaxDegreeOfParallelism} in parallel, up to {plan.MaxAttemptsPerChunk} attempts each");
     }
 
+    public static void WriteReport(TransferPlan plan, TransferResult result)
+    {
+        Console.WriteLine();
+        WriteChunkList(plan, result.ChunkHashes);
+        Console.WriteLine();
+        Console.WriteLine($"Source SHA-256:      {result.SourceFileSha256}");
+        Console.WriteLine($"Destination SHA-256: {result.DestinationFileSha256}");
+        bool isMatch = string.Equals(result.SourceFileSha256, result.DestinationFileSha256, StringComparison.Ordinal);
+        if (isMatch)
+        {
+            WriteInColor("Result: MATCH", ConsoleColor.Green);
+        }
+        else
+        {
+            WriteInColor("Result: MISMATCH", ConsoleColor.Red);
+        }
+        Console.WriteLine();
+        WriteSuccess(FormatSummary(plan, result));
+    }
+
+    private static void WriteChunkList(TransferPlan plan, IReadOnlyList<byte[]> chunkHashes)
+    {
+        Console.WriteLine("Chunk checksums (MD5):");
+        if (chunkHashes.Count == 0)
+        {
+            Console.WriteLine("(no chunks: the file is empty)");
+            return;
+        }
+
+        for (int index = 0; index < chunkHashes.Count; index++)
+        {
+            Chunk chunk = plan.ChunkAt(index);
+            Console.WriteLine($"{index + 1}) position = {chunk.Offset}, hash = {Convert.ToHexStringLower(chunkHashes[index])}");
+        }
+    }
+
+    private static string FormatSummary(TransferPlan plan, TransferResult result)
+    {
+        double seconds = Math.Max(result.Elapsed.TotalSeconds, 0.001);
+        string rate = ByteFormatter.Format((long)(plan.SourceLength / seconds));
+        return $"Copied and verified {ByteFormatter.Format(plan.SourceLength)} in {result.Elapsed.TotalSeconds:0.00} s ({rate}/s): {plan.ChunkCount:N0} chunks.";
+    }
+
     private static string FormatErrorMessage(Exception ex) => ex switch
     {
         TransferSetupException =>
