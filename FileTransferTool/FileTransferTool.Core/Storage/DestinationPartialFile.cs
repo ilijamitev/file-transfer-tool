@@ -60,9 +60,8 @@ internal sealed class DestinationPartialFile : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new TransferCommitException(
-                $"Renaming the verified copy to {finalPath} failed: {ex.Message} It is kept at {_tempPath}; rename it yourself once the problem is fixed.",
-                ex);
+            throw new TransferCommitException($"Renaming the verified copy to {finalPath} failed: {ex.Message} " +
+                $"It is kept at {_tempPath}; rename it yourself once the problem is fixed.", ex);
         }
     }
 
