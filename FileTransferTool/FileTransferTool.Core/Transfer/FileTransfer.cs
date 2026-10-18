@@ -14,6 +14,13 @@ public static class FileTransfer
 
         // 1) Open the source file and create a temporary destination file
         using SourceFile source = SourceFile.Open(plan.SourcePath);
+
+        long currentSourceLength = RandomAccess.GetLength(source.Handle);
+        if (currentSourceLength != plan.SourceLength)
+        {
+            throw new TransferSetupException($"The source file changed size after it was checked, from {plan.SourceLength} to {currentSourceLength} bytes. Start the copy again.");
+        }
+
         using DestinationPartialFile destination = DestinationPartialFile.Create(plan.DestinationPath, plan.SourceLength);
 
         // 2) Copy the chunks in parallel
