@@ -22,13 +22,6 @@ internal static class ConsoleOutput
 
     public static void WriteSuccess(string message) => WriteInColor(message, ConsoleColor.Green);
 
-    public static void WriteError(string message)
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.Error.WriteLine(message);
-        Console.ResetColor();
-    }
-
     public static void WriteError(Exception ex)
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -54,6 +47,7 @@ internal static class ConsoleOutput
         long startTimestamp = Stopwatch.GetTimestamp();
         int previousLineLength = 0;
         bool isCopyCompleted = false;
+
         while (!isCopyCompleted)
         {
             await Task.WhenAny(copyTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
